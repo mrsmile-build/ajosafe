@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AjoSafe – Trust Your Thrift</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f0e0c;
+    --surface: #1a1814;
+    --surface2: #242018;
+    --border: #2e2a22;
+    --gold: #f0a500;
+    --gold-dim: #c47f00;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --grey: #6b6560;
+    --blue: #3498db;
+    --text: #f0ebe3;
+    --text-dim: #9b9188;
+    --wa: #25d366;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; max-width: 480px; margin: 0 auto; }
+
+  .header { padding: 16px 16px 12px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--bg); z-index: 40; border-bottom: 1px solid var(--border); }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.5px; }
+  .logo span { color: var(--gold); }
+  .logo-sub { font-size: 10px; color: var(--text-dim); font-weight: 400; letter-spacing: 1px; text-transform: uppercase; margin-top: -2px; }
+
+  .screen { display: none; padding: 16px 16px 100px; }
+  .screen.active { display: block; }
+
+  /* HERO */
+  .hero { text-align: center; padding: 24px 0 16px; }
+  .hero-icon { width: 68px; height: 68px; background: linear-gradient(135deg, var(--gold), #ff8c00); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 34px; margin: 0 auto 14px; box-shadow: 0 8px 32px rgba(240,165,0,0.3); }
+  .hero h1 { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; line-height: 1.2; }
+  .hero h1 span { color: var(--gold); }
+  .hero p { color: var(--text-dim); font-size: 13px; margin-top: 8px; line-height: 1.6; }
+
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 16px 0; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 8px; text-align: center; }
+  .stat-card .num { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--gold); }
+  .stat-card .label { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+  .section-title { font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 10px; }
+
+  .group-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.2s, transform 0.15s; position: relative; overflow: hidden; }
+  .group-card:active { transform: scale(0.98); }
+  .group-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold); border-radius: 3px 0 0 3px; }
+  .group-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+  .group-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+  .group-meta span { font-size: 12px; color: var(--text-dim); }
+  .group-progress { margin-top: 10px; background: var(--bg); border-radius: 6px; height: 5px; overflow: hidden; }
+  .group-progress-fill { height: 100%; background: linear-gradient(90deg, var(--gold), #ff8c00); border-radius: 6px; }
+  .progress-label { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+  .empty-state { text-align: center; padding: 36px 20px; color: var(--text-dim); }
+  .empty-state .icon { font-size: 44px; margin-bottom: 12px; }
+  .empty-state p { font-size: 13px; line-height: 1.6; }
+
+  /* BUTTONS */
+  .btn-primary { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--gold), #ff8c00); color: #000; border: none; border-radius: 14px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; cursor: pointer; transition: opacity 0.2s, transform 0.15s; }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-secondary { width: 100%; padding: 13px; background: transparent; color: var(--text); border: 1px solid var(--border); border-radius: 14px; font-family: 'DM Sans', sans-serif; font-weight: 500; font-size: 14px; cursor: pointer; }
+  .btn-wa { background: var(--wa); color: #fff; border: none; padding: 13px 16px; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; justify-content: center; width: 100%; }
+  .btn-blue { background: rgba(52,152,219,0.15); color: var(--blue); border: 1px solid rgba(52,152,219,0.3); padding: 10px 14px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+  /* FORM */
+  .form-group { margin-bottom: 14px; }
+  .form-label { display: block; font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 7px; }
+  .form-input, .form-select, .form-textarea { width: 100%; padding: 13px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none; transition: border-color 0.2s; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--gold); }
+  .form-select option { background: var(--surface); }
+  .form-textarea { resize: none; min-height: 100px; line-height: 1.6; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-hint { font-size: 11px; color: var(--text-dim); margin-top: 5px; }
+
+  /* NAV */
+  .back-nav { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; cursor: pointer; color: var(--text-dim); font-size: 14px; }
+  .back-btn { width: 34px; height: 34px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .page-title { font-family: 'Syne', sans-serif; font-size: 21px; font-weight: 800; margin-bottom: 4px; }
+  .page-subtitle { font-size: 13px; color: var(--text-dim); margin-bottom: 20px; }
+
+  /* STEPS */
+  .steps { display: flex; gap: 6px; margin-bottom: 22px; }
+  .step-dot { flex: 1; height: 4px; background: var(--border); border-radius: 4px; transition: background 0.3s; }
+  .step-dot.active { background: var(--gold); }
+  .step-dot.done { background: var(--green); }
+
+  /* MEMBER INPUT */
+  .member-input-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .member-input-row .form-input { margin: 0; }
+  .member-num { width: 26px; height: 26px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text-dim); flex-shrink: 0; }
+  .remove-btn { width: 30px; height: 30px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--red); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .add-member-btn { width: 100%; padding: 11px; background: transparent; border: 1px dashed var(--border); border-radius: 12px; color: var(--text-dim); font-size: 14px; cursor: pointer; margin-top: 6px; }
+
+  /* GROUP HEADER */
+  .group-header { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+  .group-header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .group-header-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; }
+  .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+  .badge-active { background: rgba(46,204,113,0.15); color: var(--green); border: 1px solid rgba(46,204,113,0.3); }
+  .badge-week { background: rgba(240,165,0,0.15); color: var(--gold); border: 1px solid rgba(240,165,0,0.3); }
+  .badge-cl { background: rgba(107,101,96,0.2); color: var(--grey); border: 1px solid rgba(107,101,96,0.3); font-size: 10px; padding: 2px 7px; }
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .info-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 2px; }
+  .info-val { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; }
+  .info-val.gold { color: var(--gold); }
+
+  .current-collector { background: linear-gradient(135deg, rgba(240,165,0,0.12), rgba(255,140,0,0.04)); border: 1px solid rgba(240,165,0,0.25); border-radius: 12px; padding: 12px; margin: 10px 0; display: flex; align-items: center; gap: 10px; }
+  .collector-icon { font-size: 26px; }
+  .collector-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; }
+  .collector-name { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px; color: var(--gold); }
+
+  /* TABS */
+  .tabs { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 14px; gap: 3px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: 0 0 auto; min-width: 50px; padding: 9px 10px; border-radius: 9px; border: none; background: transparent; color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 500; cursor: pointer; transition: all 0.2s; text-align: center; white-space: nowrap; }
+  .tab.active { background: var(--gold); color: #000; font-weight: 700; }
+
+  /* MEMBER ROW — KEY FIX */
+  .member-row { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 8px; }
+  .member-row.collected { border-left: 3px solid var(--grey); }
+  .member-row-top { display: flex; align-items: center; gap: 10px; }
+  .member-avatar { width: 36px; height: 36px; background: var(--surface2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: var(--gold); flex-shrink: 0; }
+  .member-avatar.collected-av { color: var(--grey); }
+  .member-info { flex: 1; }
+  .member-name { font-weight: 600; font-size: 14px; }
+  .member-detail { font-size: 11px; color: var(--text-dim); margin-top: 2px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .member-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+  .status-btn { padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; transition: transform 0.1s; }
+  .status-btn:active { transform: scale(0.95); }
+  .status-paid { background: rgba(46,204,113,0.2); color: var(--green); border: 1px solid rgba(46,204,113,0.4); }
+  .status-unpaid { background: rgba(231,76,60,0.2); color: var(--red); border: 1px solid rgba(231,76,60,0.4); }
+
+  .action-btn { padding: 7px 11px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .btn-proof { background: rgba(240,165,0,0.1); color: var(--gold); border: 1px solid rgba(240,165,0,0.3); }
+  .btn-proof.uploaded { background: rgba(46,204,113,0.1); color: var(--green); border-color: rgba(46,204,113,0.3); }
+  .btn-fine { background: rgba(231,76,60,0.1); color: var(--red); border: 1px solid rgba(231,76,60,0.2); }
+  .btn-remind { background: rgba(37,211,102,0.1); color: var(--wa); border: 1px solid rgba(37,211,102,0.25); }
+  .fine-tag { font-size: 11px; color: var(--red); font-weight: 700; }
+  .cl-note { font-size: 11px; color: var(--grey); font-style: italic; }
+
+  /* ROTATION */
+  .rotation-row { display: flex; align-items: center; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 6px; gap: 12px; }
+  .rotation-row.current { border-color: var(--gold); background: rgba(240,165,0,0.06); }
+  .rotation-row.past { opacity: 0.55; }
+  .rotation-week { width: 32px; height: 32px; background: var(--surface2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: var(--text-dim); flex-shrink: 0; }
+  .rotation-row.current .rotation-week { background: var(--gold); color: #000; }
+  .rotation-name { flex: 1; font-weight: 600; font-size: 14px; }
+
+  /* RULES */
+  .rules-box { background: rgba(52,152,219,0.06); border: 1px solid rgba(52,152,219,0.2); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .rules-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; margin-bottom: 10px; color: var(--blue); display: flex; align-items: center; gap: 6px; }
+  .rule-item { display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(52,152,219,0.1); font-size: 13px; line-height: 1.5; }
+  .rule-item:last-child { border-bottom: none; }
+  .rule-num { color: var(--blue); font-weight: 700; flex-shrink: 0; }
+  .no-rules { font-size: 13px; color: var(--text-dim); font-style: italic; }
+
+  /* INVITE */
+  .invite-box { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .invite-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+  .invite-sub { font-size: 12px; color: var(--text-dim); margin-bottom: 14px; }
+  .invite-link-box { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 12px; font-family: monospace; font-size: 12px; color: var(--text-dim); word-break: break-all; margin-bottom: 10px; }
+  .invite-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* HISTORY */
+  .history-round { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 10px; }
+  .history-round-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+  .history-entry { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .history-entry:last-child { border-bottom: none; }
+  .h-paid { color: var(--green); font-weight: 700; font-size: 12px; }
+  .h-unpaid { color: var(--red); font-weight: 700; font-size: 12px; }
+
+  /* LOG */
+  .log-entry { display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .log-dot.paid { background: var(--green); }
+  .log-dot.unpaid { background: var(--red); }
+  .log-dot.fine { background: #ff8c00; }
+  .log-dot.proof { background: var(--gold); }
+  .log-dot.advance { background: var(--blue); }
+  .log-dot.rules { background: var(--blue); }
+  .log-text { font-size: 13px; flex: 1; }
+  .log-time { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+
+  /* SHARE */
+  .share-box { background: #0d1e15; border: 1px solid #1a3a24; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+  .share-box-title { font-size: 12px; color: var(--wa); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 10px; }
+  .share-preview { font-family: monospace; font-size: 13px; color: #e0f0e8; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+
+  /* MEMBER VIEW (read-only invite view) */
+  .member-view-banner { background: rgba(52,152,219,0.1); border: 1px solid rgba(52,152,219,0.3); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; font-size: 13px; color: var(--blue); display: flex; gap: 8px; align-items: center; }
+
+  /* MODALS */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: flex-end; justify-content: center; z-index: 100; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px 20px 0 0; padding: 22px; width: 100%; max-width: 480px; animation: slideUp 0.3s ease; }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .modal-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; margin-bottom: 4px; }
+  .modal-sub { font-size: 13px; color: var(--text-dim); margin-bottom: 18px; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 14px; }
+  .modal-actions button { flex: 1; }
+
+  .proof-upload-area { border: 2px dashed var(--border); border-radius: 14px; padding: 24px; text-align: center; cursor: pointer; margin-bottom: 12px; }
+  .proof-upload-area .upload-icon { font-size: 36px; margin-bottom: 8px; }
+  .proof-upload-area p { font-size: 13px; color: var(--text-dim); }
+  .proof-preview-img { width: 100%; border-radius: 12px; max-height: 200px; object-fit: cover; margin-bottom: 12px; display: none; }
+  #proofFileInput { display: none; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--green); color: #000; padding: 11px 22px; border-radius: 40px; font-weight: 700; font-size: 13px; z-index: 200; transition: transform 0.3s ease; white-space: nowrap; max-width: 90vw; text-align: center; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  .week-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(240,165,0,0.1); border: 1px solid rgba(240,165,0,0.2); border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--gold); font-weight: 600; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .flex-row { display: flex; gap: 10px; }
+  .flex-1 { flex: 1; }
+  .mt-12 { margin-top: 12px; }
+  .mt-16 { margin-top: 16px; }
+
+  /* INFO CALLOUT */
+  .callout { background: rgba(240,165,0,0.08); border: 1px solid rgba(240,165,0,0.2); border-radius: 12px; padding: 12px 14px; font-size: 13px; color: var(--text-dim); line-height: 1.6; margin-bottom: 14px; }
+  .callout strong { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="logo">Ajo<span>Safe</span></div>
+    <div class="logo-sub">Trust Your Thrift 🇳🇬</div>
+  </div>
+  <div id="headerWeek" style="display:none">
+    <span class="week-badge">📅 <span id="currentWeekLabel">Round 1</span></span>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="screen active" id="screen-home">
+  <div class="hero">
+    <div class="hero-icon">💰</div>
+    <h1>Manage Your <span>Ajo</span><br>With Full Trust</h1>
+    <p>No arguments. No lost records.<br>Track payments, proof, rotation & fines.</p>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="num" id="statGroups">0</div><div class="label">Groups</div></div>
+    <div class="stat-card"><div class="num" id="statMembers">0</div><div class="label">Members</div></div>
+    <div class="stat-card"><div class="num" id="statPool">₦0</div><div class="label">Pool</div></div>
+  </div>
+  <div class="section-title">Your Ajo Groups</div>
+  <div id="groupsList"><div class="empty-state"><div class="icon">🏦</div><p>No ajo group yet.<br>Create your first group below.</p></div></div>
+  <div class="mt-16"><button class="btn-primary" onclick="showScreen('screen-create')">+ Create New Ajo Group</button></div>
+</div>
+
+<!-- CREATE -->
+<div class="screen" id="screen-create">
+  <div class="back-nav" onclick="showScreen('screen-home')"><div class="back-btn">←</div> Back</div>
+  <div class="page-title">Create Ajo Group</div>
+  <div class="page-subtitle">Set up your group details</div>
+  <div class="steps">
+    <div class="step-dot active" id="step1dot"></div>
+    <div class="step-dot" id="step2dot"></div>
+    <div class="step-dot" id="step3dot"></div>
+  </div>
+
+  <!-- STEP 1: Details -->
+  <div id="createStep1">
+    <div class="form-group">
+      <label class="form-label">Group Name</label>
+      <input class="form-input" id="groupName" placeholder="e.g. Market Women Ajo..." type="text">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Contribution (₦)</label>
+        <input class="form-input" id="groupAmount" placeholder="1000" type="number" inputmode="numeric">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Frequency</label>
+        <select class="form-select" id="groupFreq">
+          <option value="weekly">Weekly</option>
+          <option value="daily">Daily</option>
+          <option value="monthly">Monthly</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Admin Fee (₦)</label>
+        <input class="form-input" id="groupCommission" placeholder="0" type="number" inputmode="numeric" value="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Late Fine (₦)</label>
+        <input class="form-input" id="groupFine" placeholder="0" type="number" inputmode="numeric" value="0">
+      </div>
+    </div>
+    <div class="form-hint">Even after a member collects, they still contribute every round until the cycle ends.</div>
+    <div class="mt-16"><button class="btn-primary" onclick="goToStep2()">Next: Add Members →</button></div>
+  </div>
+
+  <!-- STEP 2: Members -->
+  <div id="createStep2" style="display:none">
+    <div class="form-label" style="margin-bottom:8px">Members (Rotation Order)</div>
+    <div class="form-hint" style="margin-bottom:12px">Position 1 collects first. Everyone pays every round.</div>
+    <div id="memberInputs">
+      <div class="member-input-row"><div class="member-num">1</div><input class="form-input" placeholder="Member name..." type="text"><button class="remove-btn" onclick="removeMemberInput(this)">×</button></div>
+      <div class="member-input-row"><div class="member-num">2</div><input class="form-input" placeholder="Member name..." type="text"><button class="remove-btn" onclick="removeMemberInput(this)">×</button></div>
+      <div class="member-input-row"><div class="member-num">3</div><input class="form-input" placeholder="Member name..." type="text"><button class="remove-btn" onclick="removeMemberInput(this)">×</button></div>
+    </div>
+    <button class="add-member-btn" onclick="addMemberInput()">+ Add Another Member</button>
+    <div class="mt-16 flex-row">
+      <button class="btn-secondary flex-1" onclick="backToStep(1)">← Back</button>
+      <button class="btn-primary flex-1" onclick="goToStep3()">Next: Set Rules →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Rules -->
+  <div id="createStep3" style="display:none">
+    <div class="callout"><strong>Group Rules</strong> are shown to all members when they join. Write your ajo rules clearly — late payment policy, fine amounts, how disputes are handled etc.</div>
+    <div class="form-group">
+      <label class="form-label">Group Rules (one per line)</label>
+      <textarea class="form-textarea" id="groupRules" placeholder="e.g.
+1. Contribution must be paid before Wednesday
+2. Late payment attracts ₦200 fine
+3. No partial payments
+4. Admin decision is final
+5. Members must send payment proof"></textarea>
+    </div>
+    <div class="form-hint">You can edit rules later from the group settings.</div>
+    <div class="mt-16 flex-row">
+      <button class="btn-secondary flex-1" onclick="backToStep(2)">← Back</button>
+      <button class="btn-primary flex-1" onclick="createGroup()">Create Group ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- GROUP DETAIL -->
+<div class="screen" id="screen-group">
+  <div class="back-nav" onclick="showScreen('screen-home')"><div class="back-btn">←</div> All Groups</div>
+  <div class="group-header" id="groupDetailHeader"></div>
+  <div class="tabs">
+    <button class="tab active" id="tab-btn-payments" onclick="switchTab('payments')">💸 Pay</button>
+    <button class="tab" id="tab-btn-rotation" onclick="switchTab('rotation')">🔄 Order</button>
+    <button class="tab" id="tab-btn-rules" onclick="switchTab('rules')">📜 Rules</button>
+    <button class="tab" id="tab-btn-history" onclick="switchTab('history')">📋 History</button>
+    <button class="tab" id="tab-btn-log" onclick="switchTab('log')">🕓 Log</button>
+    <button class="tab" id="tab-btn-share" onclick="switchTab('share')">📤 Share</button>
+    <button class="tab" id="tab-btn-invite" onclick="switchTab('invite')">🔗 Invite</button>
+  </div>
+
+  <div id="tab-payments">
+    <div class="callout" style="margin-bottom:12px"><strong>Note:</strong> Members who already collected (🔒 CL) still pay every round until the full cycle ends.</div>
+    <div id="membersPaymentList"></div>
+    <div class="divider"></div>
+    <div class="flex-row">
+      <button class="btn-secondary flex-1" onclick="advanceWeek()">⏭ Next Round</button>
+      <button class="btn-wa flex-1" onclick="switchTab('share')">📲 Share</button>
+    </div>
+  </div>
+  <div id="tab-rotation" style="display:none"><div id="rotationList"></div></div>
+  <div id="tab-rules" style="display:none"><div id="rulesList"></div></div>
+  <div id="tab-history" style="display:none"><div id="historyList"></div></div>
+  <div id="tab-log" style="display:none"><div id="logList"></div></div>
+  <div id="tab-share" style="display:none">
+    <div class="share-box"><div class="share-box-title">📱 WhatsApp Preview</div><div class="share-preview" id="waPreview"></div></div>
+    <button class="btn-wa" onclick="shareToWhatsApp()">📲 Send to WhatsApp Group</button>
+    <div class="mt-12"><button class="btn-secondary" onclick="copyList()">📋 Copy List</button></div>
+  </div>
+  <div id="tab-invite" style="display:none"><div id="inviteContent"></div></div>
+</div>
+
+<!-- MEMBER VIEW (read-only for invited members) -->
+<div class="screen" id="screen-member">
+  <div class="member-view-banner">👁️ You are viewing this group as a member (read-only)</div>
+  <div id="memberViewContent"></div>
+</div>
+
+<!-- PROOF MODAL -->
+<div class="modal-overlay" id="proofModal">
+  <div class="modal">
+    <div class="modal-title">📸 Proof of Payment</div>
+    <div class="modal-sub" id="proofModalSub">Upload payment screenshot.</div>
+    <div class="proof-upload-area" onclick="document.getElementById('proofFileInput').click()">
+      <div class="upload-icon">📷</div>
+      <p>Tap to upload screenshot</p>
+    </div>
+    <img class="proof-preview-img" id="proofPreview" src="" alt="">
+    <input type="file" id="proofFileInput" accept="image/*" onchange="handleProofUpload(event)">
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeProofModal()">Cancel</button>
+      <button class="btn-primary" id="confirmProofBtn" onclick="confirmProof()" style="opacity:0.5" disabled>Confirm ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- FINE MODAL -->
+<div class="modal-overlay" id="fineModal">
+  <div class="modal">
+    <div class="modal-title">⚠️ Apply Fine</div>
+    <div class="modal-sub" id="fineModalSub">Apply a fine for late payment.</div>
+    <div class="form-group">
+      <label class="form-label">Fine Amount (₦)</label>
+      <input class="form-input" id="fineAmount" type="number" inputmode="numeric">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeFineModal()">Cancel</button>
+      <button class="btn-primary" onclick="confirmFine()" style="background:var(--red);color:#fff;">Apply Fine</button>
+    </div>
+  </div>
+</div>
+
+<!-- RULES EDIT MODAL -->
+<div class="modal-overlay" id="rulesModal">
+  <div class="modal">
+    <div class="modal-title">📜 Edit Group Rules</div>
+    <div class="modal-sub">One rule per line. Members will see these when they join.</div>
+    <div class="form-group">
+      <textarea class="form-textarea" id="rulesEditInput" style="min-height:140px"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeRulesModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveRules()">Save Rules ✓</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== STATE ==========
+let groups = JSON.parse(localStorage.getItem('ajosafe_v3') || '[]');
+let currentGroupId = null;
+let pendingFineMember = null;
+let pendingProofMember = null;
+let proofDataUrl = null;
+
+function save() { localStorage.setItem('ajosafe_v3', JSON.stringify(groups)); }
+function getGroup() { return groups.find(g => g.id === currentGroupId); }
+
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color || 'var(--green)';
+  t.style.color = (!color || color === 'var(--green)') ? '#000' : '#fff';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+  document.getElementById('headerWeek').style.display = id === 'screen-group' ? 'flex' : 'none';
+  if (id === 'screen-home') renderHome();
+  if (id === 'screen-group') { switchTab('payments'); renderGroupDetail(); }
+}
+
+function formatN(n) { return '₦' + Number(n).toLocaleString(); }
+function initials(n) { return n.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2); }
+function timeStr(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('en-NG', { day:'numeric', month:'short' }) + ' · ' + d.toLocaleTimeString('en-NG', { hour:'2-digit', minute:'2-digit' });
+}
+function addLog(g, type, text) {
+  if (!g.log) g.log = [];
+  g.log.unshift({ type, text, ts: Date.now() });
+  if (g.log.length > 150) g.log.pop();
+}
+function genCode() { return Math.random().toString(36).substr(2, 8).toUpperCase(); }
+
+// ========== CHECK INVITE LINK ==========
+function checkInviteLink() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('invite');
+  if (!code) return;
+  const g = groups.find(g => g.inviteCode === code);
+  if (!g) { showToast('Invalid or expired invite link', 'var(--red)'); return; }
+  showMemberView(g);
+}
+
+function showMemberView(g) {
+  document.getElementById('headerWeek').style.display = 'none';
+  const payout = (g.amount * g.members.length) - g.commission;
+  const collector = g.members[g.currentWeek - 1];
+  const paid = g.members.filter(m => m.status === 'paid').length;
+  const rules = (g.rules || '').split('\n').filter(Boolean);
+
+  document.getElementById('memberViewContent').innerHTML = `
+    <div style="text-align:center;padding:16px 0 20px">
+      <div style="font-size:36px;margin-bottom:10px">💰</div>
+      <div style="font-family:Syne,sans-serif;font-weight:800;font-size:22px">${g.name}</div>
+      <div style="font-size:13px;color:var(--text-dim);margin-top:4px">${formatN(g.amount)}/${g.freq} · ${g.members.length} members</div>
+    </div>
+    ${collector ? `<div class="current-collector"><div class="collector-icon">🏆</div><div><div class="collector-label">Collecting This Round</div><div class="collector-name">${collector.name}</div><div style="font-size:12px;color:var(--text-dim)">Round ${g.currentWeek} · ${formatN(payout)} payout</div></div></div>` : ''}
+    <div style="font-family:Syne,sans-serif;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-dim);margin:16px 0 10px">Payment Status — Round ${g.currentWeek}</div>
+    ${g.members.map(m => {
+      const icon = m.status === 'paid' ? '✅' : '❌';
+      const cl = m.hasCollected ? ' <span class="badge badge-cl">CL</span>' : '';
+      return `<div class="member-row${m.hasCollected ? ' collected' : ''}">
+        <div class="member-row-top">
+          <div class="member-avatar${m.hasCollected ? ' collected-av' : ''}">${initials(m.name)}</div>
+          <div class="member-info">
+            <div class="member-name">${m.name}${cl}</div>
+            <div class="member-detail">${m.fine > 0 ? `<span class="fine-tag">+${formatN(m.fine)} fine</span>` : ''}${m.proofUploaded ? '📸 proof sent' : ''}</div>
+          </div>
+          <span style="font-size:20px">${icon}</span>
+        </div>
+      </div>`;
+    }).join('')}
+    ${rules.length ? `
+    <div style="margin-top:20px">
+      <div class="rules-title">📜 Group Rules</div>
+      <div class="rules-box">
+        ${rules.map((r, i) => `<div class="rule-item"><span class="rule-num">${i+1}.</span><span>${r.replace(/^\d+\.\s*/, '')}</span></div>`).join('')}
+      </div>
+    </div>` : ''}
+    <div style="text-align:center;margin-top:24px;font-size:12px;color:var(--text-dim)">Tracked with AjoSafe 🇳🇬</div>
+  `;
+  showScreen('screen-member');
+}
+
+// ========== HOME ==========
+function renderHome() {
+  const totalMembers = groups.reduce((a, g) => a + g.members.length, 0);
+  document.getElementById('statGroups').textContent = groups.length;
+  document.getElementById('statMembers').textContent = totalMembers;
+  document.getElementById('statPool').textContent = groups.length ? formatN(groups[0].amount * groups[0].members.length) : '₦0';
+  const list = document.getElementById('groupsList');
+  if (!groups.length) { list.innerHTML = `<div class="empty-state"><div class="icon">🏦</div><p>No ajo group yet.<br>Create your first group below.</p></div>`; return; }
+  list.innerHTML = groups.map(g => {
+    const paid = g.members.filter(m => m.status === 'paid').length;
+    const total = g.members.length;
+    const pct = Math.round((paid / total) * 100);
+    const collector = g.members[g.currentWeek - 1];
+    return `<div class="group-card" onclick="openGroup('${g.id}')">
+      <div class="group-name">${g.name}</div>
+      <div class="group-meta"><span>👥 ${total} members</span><span>💰 ${formatN(g.amount)}/${g.freq}</span><span>📅 Round ${g.currentWeek}</span></div>
+      ${collector ? `<div style="font-size:12px;color:var(--gold);margin-top:8px">🏆 Collecting: <strong>${collector.name}</strong></div>` : ''}
+      <div class="group-progress"><div class="group-progress-fill" style="width:${pct}%"></div></div>
+      <div class="progress-label">${paid}/${total} paid · Round ${g.currentWeek} of ${total}</div>
+    </div>`;
+  }).join('');
+}
+
+// ========== CREATE ==========
+function goToStep2() {
+  if (!document.getElementById('groupName').value.trim() || !document.getElementById('groupAmount').value) { showToast('Fill name and amount!', 'var(--red)'); return; }
+  document.getElementById('createStep1').style.display = 'none';
+  document.getElementById('createStep2').style.display = 'block';
+  document.getElementById('step1dot').className = 'step-dot done';
+  document.getElementById('step2dot').className = 'step-dot active';
+}
+function goToStep3() {
+  const names = [...document.querySelectorAll('#memberInputs input')].map(i => i.value.trim()).filter(Boolean);
+  if (names.length < 2) { showToast('Add at least 2 members!', 'var(--red)'); return; }
+  document.getElementById('createStep2').style.display = 'none';
+  document.getElementById('createStep3').style.display = 'block';
+  document.getElementById('step2dot').className = 'step-dot done';
+  document.getElementById('step3dot').className = 'step-dot active';
+}
+function backToStep(n) {
+  [1,2,3].forEach(i => document.getElementById('createStep' + i).style.display = 'none');
+  document.getElementById('createStep' + n).style.display = 'block';
+  if (n === 1) { document.getElementById('step1dot').className = 'step-dot active'; document.getElementById('step2dot').className = 'step-dot'; document.getElementById('step3dot').className = 'step-dot'; }
+  if (n === 2) { document.getElementById('step1dot').className = 'step-dot done'; document.getElementById('step2dot').className = 'step-dot active'; document.getElementById('step3dot').className = 'step-dot'; }
+}
+function addMemberInput() {
+  const c = document.getElementById('memberInputs');
+  const num = c.children.length + 1;
+  const div = document.createElement('div');
+  div.className = 'member-input-row';
+  div.innerHTML = `<div class="member-num">${num}</div><input class="form-input" placeholder="Member name..." type="text"><button class="remove-btn" onclick="removeMemberInput(this)">×</button>`;
+  c.appendChild(div);
+}
+function removeMemberInput(btn) {
+  const c = document.getElementById('memberInputs');
+  if (c.children.length <= 1) return;
+  btn.parentElement.remove();
+  [...c.children].forEach((r, i) => r.querySelector('.member-num').textContent = i + 1);
+}
+function createGroup() {
+  const names = [...document.querySelectorAll('#memberInputs input')].map(i => i.value.trim()).filter(Boolean);
+  const g = {
+    id: 'g_' + Date.now(),
+    name: document.getElementById('groupName').value.trim(),
+    amount: parseInt(document.getElementById('groupAmount').value) || 0,
+    freq: document.getElementById('groupFreq').value,
+    commission: parseInt(document.getElementById('groupCommission').value) || 0,
+    fineAmount: parseInt(document.getElementById('groupFine').value) || 0,
+    rules: document.getElementById('groupRules').value.trim(),
+    inviteCode: genCode(),
+    currentWeek: 1, log: [], rounds: [],
+    members: names.map((name, i) => ({
+      id: 'm_' + i + '_' + Date.now(), name,
+      status: 'unpaid', fine: 0,
+      proofUploaded: false, proofImage: null,
+      hasCollected: false
+    }))
+  };
+  addLog(g, 'advance', `Group "${g.name}" created · ${names.length} members · Invite: ${g.inviteCode}`);
+  groups.push(g); save();
+  // reset form
+  document.getElementById('groupName').value = '';
+  document.getElementById('groupAmount').value = '';
+  document.getElementById('groupCommission').value = '0';
+  document.getElementById('groupFine').value = '0';
+  document.getElementById('groupRules').value = '';
+  document.getElementById('memberInputs').innerHTML = [1,2,3].map(n => `<div class="member-input-row"><div class="member-num">${n}</div><input class="form-input" placeholder="Member name..." type="text"><button class="remove-btn" onclick="removeMemberInput(this)">×</button></div>`).join('');
+  backToStep(1);
+  showToast('✅ Group created!');
+  openGroup(g.id);
+}
+
+// ========== GROUP DETAIL ==========
+function openGroup(id) { currentGroupId = id; showScreen('screen-group'); }
+
+function renderGroupDetail() {
+  const g = getGroup(); if (!g) return;
+  document.getElementById('currentWeekLabel').textContent = `Round ${g.currentWeek} of ${g.members.length}`;
+  const collector = g.members[g.currentWeek - 1];
+  const payout = (g.amount * g.members.length) - g.commission;
+  const clCount = g.members.filter(m => m.hasCollected).length;
+  document.getElementById('groupDetailHeader').innerHTML = `
+    <div class="group-header-top"><div class="group-header-name">${g.name}</div><span class="badge badge-active">Active</span></div>
+    <div class="info-grid">
+      <div><div class="info-label">Contribution</div><div class="info-val gold">${formatN(g.amount)}</div></div>
+      <div><div class="info-label">Frequency</div><div class="info-val">${g.freq}</div></div>
+      <div><div class="info-label">Members</div><div class="info-val">${g.members.length} <span style="font-size:12px;color:var(--grey)">(${clCount} CL)</span></div></div>
+      <div><div class="info-label">Payout</div><div class="info-val gold">${formatN(payout)}</div></div>
+    </div>
+    ${collector ? `<div class="current-collector"><div class="collector-icon">🏆</div><div><div class="collector-label">Collecting This Round</div><div class="collector-name">${collector.name}</div><div style="font-size:12px;color:var(--text-dim)">${formatN(payout)} after ${formatN(g.commission)} fee</div></div></div>` : ''}`;
+  renderPayments(); renderRotation(); renderRules(); renderHistory(); renderLog(); renderShare(); renderInvite();
+}
+
+// ========== PAYMENTS (KEY FIX) ==========
+// CL = already collected their turn, but they STILL pay every round
+// hasCollected = true means their rotation slot is done
+// status (paid/unpaid) resets every round for EVERYONE including CL members
+function renderPayments() {
+  const g = getGroup(); if (!g) return;
+  document.getElementById('membersPaymentList').innerHTML = g.members.map((m, i) => {
+    const isCollector = i === (g.currentWeek - 1);
+    const sLabel = m.status === 'paid' ? '✅ Paid' : '❌ Unpaid';
+    const sClass = m.status === 'paid' ? 'status-paid' : 'status-unpaid';
+    const clBadge = m.hasCollected ? '<span class="badge badge-cl" style="margin-left:6px">CL</span>' : '';
+    const clNote = m.hasCollected ? '<span class="cl-note">Already collected — still pays</span>' : '';
+    return `<div class="member-row${m.hasCollected ? ' collected' : ''}">
+      <div class="member-row-top">
+        <div class="member-avatar${m.hasCollected ? ' collected-av' : ''}">${initials(m.name)}</div>
+        <div class="member-info">
+          <div class="member-name">${m.name}${isCollector ? ' 🏆' : ''}${clBadge}</div>
+          <div class="member-detail">${m.fine > 0 ? `<span class="fine-tag">+${formatN(m.fine)} fine</span>` : ''}${clNote}</div>
+        </div>
+        <button class="status-btn ${sClass}" onclick="cycleStatus('${m.id}')">${sLabel}</button>
+      </div>
+      <div class="member-actions">
+        <button class="action-btn btn-proof${m.proofUploaded ? ' uploaded' : ''}" onclick="openProofModal('${m.id}')">${m.proofUploaded ? '📸 Proof ✓' : '📸 Proof'}</button>
+        ${m.status === 'unpaid' ? `<button class="action-btn btn-fine" onclick="openFineModal('${m.id}')">⚠️ Fine</button>` : ''}
+        <button class="action-btn btn-remind" onclick="remindMember('${m.id}')">📲 Remind</button>
+      </div>
+      ${m.proofImage ? `<img src="${m.proofImage}" style="width:100%;border-radius:10px;max-height:120px;object-fit:cover;margin-top:8px">` : ''}
+    </div>`;
+  }).join('');
+}
+
+function cycleStatus(memberId) {
+  const g = getGroup();
+  const m = g.members.find(m => m.id === memberId); if (!m) return;
+  if (m.status === 'unpaid') { m.status = 'paid'; addLog(g, 'paid', `${m.name} ✅ Paid`); showToast(`✅ ${m.name} marked paid`); }
+  else { m.status = 'unpaid'; addLog(g, 'unpaid', `${m.name} ❌ Unpaid`); showToast(`${m.name} marked unpaid`, 'var(--red)'); }
+  save(); renderPayments(); renderShare(); renderLog();
+}
+
+function remindMember(memberId) {
+  const g = getGroup();
+  const m = g.members.find(m => m.id === memberId); if (!m) return;
+  const payout = (g.amount * g.members.length) - g.commission;
+  const collector = g.members[g.currentWeek - 1];
+  const fineStr = m.fine > 0 ? ` You also have a fine of ${formatN(m.fine)}.` : '';
+  const clStr = m.hasCollected ? `\n\nEven though you already collected, you must still pay every round until the cycle ends.` : '';
+  const text = `Hi ${m.name}! 👋\n\nReminder for *${g.name}* – Round ${g.currentWeek}.\n\n❌ Your contribution of *${formatN(g.amount)}* has not been received.${fineStr}${clStr}\n\n${collector ? `🏆 *${collector.name}* is collecting *${formatN(payout)}* this round.` : ''}\n\nPlease pay as soon as possible. 🙏\n\n_Tracked with AjoSafe 🇳🇬_`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+  addLog(g, 'proof', `📲 Reminder sent to ${m.name}`);
+  save(); renderLog();
+}
+
+// ========== ADVANCE ROUND (KEY FIX) ==========
+// When advancing: mark collector's hasCollected = true
+// Reset EVERYONE's payment status (including CL members — they still owe next round)
+// Only the rotation slot stays "done", not the payment obligation
+function advanceWeek() {
+  const g = getGroup();
+  const unpaid = g.members.filter(m => m.status === 'unpaid').length;
+  if (unpaid > 0 && !confirm(`${unpaid} member(s) still unpaid. Advance anyway?`)) return;
+
+  if (!g.rounds) g.rounds = [];
+  g.rounds.unshift({
+    round: g.currentWeek,
+    collector: g.members[g.currentWeek - 1]?.name || '—',
+    payout: (g.amount * g.members.length) - g.commission,
+    members: g.members.map(m => ({ name: m.name, status: m.status, fine: m.fine, proofUploaded: m.proofUploaded, hasCollected: m.hasCollected })),
+    ts: Date.now()
+  });
+
+  // Mark this round's collector as CL (rotation done)
+  const collector = g.members[g.currentWeek - 1];
+  if (collector) collector.hasCollected = true;
+
+  if (g.currentWeek >= g.members.length) {
+    // Full cycle done — reset everything
+    addLog(g, 'advance', `🎉 Full cycle complete! All ${g.members.length} members collected. New cycle starting.`);
+    g.currentWeek = 1;
+    g.members.forEach(m => { m.status = 'unpaid'; m.fine = 0; m.proofUploaded = false; m.proofImage = null; m.hasCollected = false; });
+    showToast('🎉 Full cycle done! New cycle started.');
+  } else {
+    g.currentWeek++;
+    const nextCollector = g.members[g.currentWeek - 1]?.name;
+    addLog(g, 'advance', `📅 Round ${g.currentWeek} started – ${nextCollector} collects. All members reset to unpaid.`);
+    // Reset EVERYONE's payment (CL members still owe)
+    g.members.forEach(m => { m.status = 'unpaid'; m.fine = 0; m.proofUploaded = false; m.proofImage = null; });
+    showToast(`📅 Round ${g.currentWeek} started`);
+  }
+  save(); renderGroupDetail();
+}
+
+// ========== PROOF ==========
+function openProofModal(memberId) {
+  const g = getGroup();
+  const m = g.members.find(m => m.id === memberId);
+  pendingProofMember = memberId; proofDataUrl = null;
+  document.getElementById('proofModalSub').textContent = `Upload payment proof for ${m.name}.`;
+  document.getElementById('proofPreview').style.display = 'none';
+  document.getElementById('proofPreview').src = '';
+  document.getElementById('proofFileInput').value = '';
+  const btn = document.getElementById('confirmProofBtn');
+  btn.disabled = true; btn.style.opacity = '0.5';
+  document.getElementById('proofModal').classList.add('open');
+}
+function closeProofModal() { document.getElementById('proofModal').classList.remove('open'); pendingProofMember = null; proofDataUrl = null; }
+function handleProofUpload(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    proofDataUrl = ev.target.result;
+    const img = document.getElementById('proofPreview');
+    img.src = proofDataUrl; img.style.display = 'block';
+    const btn = document.getElementById('confirmProofBtn');
+    btn.disabled = false; btn.style.opacity = '1';
+  };
+  reader.readAsDataURL(file);
+}
+function confirmProof() {
+  if (!proofDataUrl || !pendingProofMember) return;
+  const g = getGroup();
+  const m = g.members.find(m => m.id === pendingProofMember);
+  m.proofUploaded = true; m.proofImage = proofDataUrl; m.status = 'paid';
+  addLog(g, 'proof', `📸 Proof uploaded for ${m.name} – auto-marked paid`);
+  save(); closeProofModal(); renderPayments(); renderShare(); renderLog();
+  showToast(`📸 Proof saved for ${m.name}`);
+}
+
+// ========== FINE ==========
+function openFineModal(memberId) {
+  const g = getGroup();
+  const m = g.members.find(m => m.id === memberId);
+  pendingFineMember = memberId;
+  document.getElementById('fineModalSub').textContent = `Apply fine to ${m.name}.`;
+  document.getElementById('fineAmount').value = g.fineAmount || '';
+  document.getElementById('fineModal').classList.add('open');
+}
+function closeFineModal() { document.getElementById('fineModal').classList.remove('open'); pendingFineMember = null; }
+function confirmFine() {
+  const g = getGroup();
+  const m = g.members.find(m => m.id === pendingFineMember);
+  const amount = parseInt(document.getElementById('fineAmount').value) || 0;
+  if (!amount) { showToast('Enter a fine amount', 'var(--red)'); return; }
+  m.fine = (m.fine || 0) + amount;
+  addLog(g, 'fine', `⚠️ ${formatN(amount)} fine applied to ${m.name}`);
+  save(); closeFineModal(); renderPayments(); renderLog();
+  showToast(`⚠️ Fine applied`, '#ff8c00');
+}
+
+// ========== ROTATION ==========
+function renderRotation() {
+  const g = getGroup();
+  document.getElementById('rotationList').innerHTML = `
+    <div class="callout"><strong>How rotation works:</strong> Each member collects once per cycle in this order. After collecting, they show 🔒 CL — but they still pay every round until everyone has collected.</div>
+    ` + g.members.map((m, i) => {
+    const w = i + 1;
+    const isCurrent = w === g.currentWeek;
+    const isPast = m.hasCollected;
+    return `<div class="rotation-row ${isCurrent ? 'current' : ''} ${isPast && !isCurrent ? 'past' : ''}">
+      <div class="rotation-week">${w}</div>
+      <div class="rotation-name">${m.name}</div>
+      <div>${isCurrent ? '<span class="badge badge-week">Now</span>' : isPast ? '🔒 CL' : '⏳'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ========== RULES ==========
+function renderRules() {
+  const g = getGroup();
+  const rules = (g.rules || '').split('\n').filter(Boolean);
+  document.getElementById('rulesList').innerHTML = `
+    <div class="flex-row" style="margin-bottom:14px">
+      <div class="flex-1"><div style="font-family:Syne,sans-serif;font-weight:700;font-size:16px">Group Rules</div><div style="font-size:12px;color:var(--text-dim);margin-top:2px">All members must follow these rules</div></div>
+      <button class="btn-blue" onclick="openRulesModal()">✏️ Edit</button>
+    </div>
+    ${rules.length ? `
+    <div class="rules-box">
+      <div class="rules-title">📜 Current Rules</div>
+      ${rules.map((r, i) => `<div class="rule-item"><span class="rule-num">${i+1}.</span><span>${r.replace(/^\d+\.\s*/, '')}</span></div>`).join('')}
+    </div>` : `<div class="rules-box"><p class="no-rules">No rules set yet. Tap Edit to add your group rules.</p></div>`}
+  `;
+}
+function openRulesModal() {
+  const g = getGroup();
+  document.getElementById('rulesEditInput').value = g.rules || '';
+  document.getElementById('rulesModal').classList.add('open');
+}
+function closeRulesModal() { document.getElementById('rulesModal').classList.remove('open'); }
+function saveRules() {
+  const g = getGroup();
+  g.rules = document.getElementById('rulesEditInput').value.trim();
+  addLog(g, 'rules', '📜 Group rules updated');
+  save(); closeRulesModal(); renderRules(); renderLog();
+  showToast('📜 Rules saved!');
+}
+
+// ========== INVITE ==========
+function renderInvite() {
+  const g = getGroup();
+  if (!g.inviteCode) { g.inviteCode = genCode(); save(); }
+  const link = `${window.location.origin}${window.location.pathname}?invite=${g.inviteCode}`;
+  document.getElementById('inviteContent').innerHTML = `
+    <div class="invite-box">
+      <div class="invite-title">🔗 Member Invite Link</div>
+      <div class="invite-sub">Share this link with your ajo members. They can view payment status and group rules — but cannot make changes. Only you (admin) can edit.</div>
+      <div class="invite-link-box">${link}</div>
+      <div class="invite-actions">
+        <button class="btn-wa" style="flex:1" onclick="shareInviteWA('${link}')">📲 Share on WhatsApp</button>
+        <button class="btn-secondary" style="flex:0 0 auto;width:auto;padding:12px 16px" onclick="copyInviteLink('${link}')">📋 Copy</button>
+      </div>
+    </div>
+    <div class="callout">
+      <strong>What members can see:</strong> Payment status, who is collecting, round history, group rules.<br><br>
+      <strong>What members cannot do:</strong> Mark payments, apply fines, advance rounds, edit rules.<br><br>
+      <strong>Privacy:</strong> Only people with this exact link can view the group.
+    </div>
+    <button class="btn-secondary" onclick="regenerateCode()" style="margin-top:4px">🔄 Generate New Link</button>
+  `;
+}
+function shareInviteWA(link) {
+  const g = getGroup();
+  const text = `Hi! 👋\n\nYou've been added to *${g.name}* on AjoSafe.\n\nYou can view your payment status, rotation order, and group rules here:\n\n${link}\n\n_AjoSafe – Trust Your Thrift 🇳🇬_`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
+}
+function copyInviteLink(link) {
+  navigator.clipboard.writeText(link).then(() => showToast('🔗 Link copied!')).catch(() => {
+    const el = document.createElement('textarea'); el.value = link; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+    showToast('🔗 Link copied!');
+  });
+}
+function regenerateCode() {
+  if (!confirm('Generate a new invite link? The old link will stop working.')) return;
+  const g = getGroup();
+  g.inviteCode = genCode();
+  addLog(g, 'rules', '🔄 Invite link regenerated');
+  save(); renderInvite(); renderLog();
+  showToast('🔄 New link generated');
+}
+
+// ========== HISTORY ==========
+function renderHistory() {
+  const g = getGroup();
+  const rounds = g.rounds || [];
+  if (!rounds.length) { document.getElementById('historyList').innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>No completed rounds yet.<br>History appears after each round ends.</p></div>`; return; }
+  document.getElementById('historyList').innerHTML = rounds.map(r => `
+    <div class="history-round">
+      <div class="history-round-title"><span>Round ${r.round} · ${r.collector} 🏆</span><span style="font-size:11px;color:var(--text-dim);font-weight:400">${timeStr(r.ts)}</span></div>
+      <div style="font-size:12px;color:var(--gold);margin-bottom:8px">Payout: ${formatN(r.payout)}</div>
+      ${r.members.map(m => `<div class="history-entry">
+        <span style="font-size:13px">${m.name}${m.hasCollected ? ' 🔒' : ''}${m.proofUploaded ? ' 📸' : ''}</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${m.fine > 0 ? `<span class="fine-tag">+${formatN(m.fine)}</span>` : ''}
+          <span class="${m.status === 'paid' ? 'h-paid' : 'h-unpaid'}">${m.status === 'paid' ? '✅' : '❌'}</span>
+        </div>
+      </div>`).join('')}
+    </div>`).join('');
+}
+
+// ========== LOG ==========
+function renderLog() {
+  const g = getGroup();
+  const log = g.log || [];
+  if (!log.length) { document.getElementById('logList').innerHTML = `<div class="empty-state"><div class="icon">🕓</div><p>No activity yet.</p></div>`; return; }
+  document.getElementById('logList').innerHTML = log.map(e => `
+    <div class="log-entry">
+      <div class="log-dot ${e.type}"></div>
+      <div><div class="log-text">${e.text}</div><div class="log-time">${timeStr(e.ts)}</div></div>
+    </div>`).join('');
+}
+
+// ========== SHARE ==========
+function renderShare() {
+  const g = getGroup(); if (!g) return;
+  const payout = (g.amount * g.members.length) - g.commission;
+  const collector = g.members[g.currentWeek - 1];
+  let text = `*${g.name} – Round ${g.currentWeek} of ${g.members.length}*\n💰 ${formatN(g.amount)}/${g.freq} · 👥 ${g.members.length} members\n`;
+  if (collector) text += `🏆 Collecting: *${collector.name}* (${formatN(payout)})\n`;
+  text += `\n*Payment Status:*\n`;
+  g.members.forEach(m => {
+    const icon = m.status === 'paid' ? '✅' : '❌';
+    const cl = m.hasCollected ? ' 🔒' : '';
+    text += `${icon} ${m.name}${cl}${m.proofUploaded ? ' 📸' : ''}${m.fine > 0 ? ` (+${formatN(m.fine)})` : ''}\n`;
+  });
+  const paid = g.members.filter(m => m.status === 'paid').length;
+  const unpaid = g.members.filter(m => m.status === 'unpaid').length;
+  text += `\n📊 ${paid} paid · ${unpaid} pending`;
+  if (g.commission > 0) text += `\n💼 Admin fee: ${formatN(g.commission)}`;
+  text += `\n🔒 CL = already collected but still pays\n\n_Tracked with AjoSafe 🇳🇬_`;
+  document.getElementById('waPreview').textContent = text;
+}
+function shareToWhatsApp() { window.open('https://wa.me/?text=' + encodeURIComponent(document.getElementById('waPreview').textContent), '_blank'); }
+function copyList() {
+  const text = document.getElementById('waPreview').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('📋 Copied!')).catch(() => {
+    const el = document.createElement('textarea'); el.value = text; document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el);
+    showToast('📋 Copied!');
+  });
+}
+
+// ========== TABS ==========
+function switchTab(tab) {
+  ['payments','rotation','rules','history','log','share','invite'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'block' : 'none';
+    const b = document.getElementById('tab-btn-' + t);
+    if (b) b.className = 'tab' + (t === tab ? ' active' : '');
+  });
+  if (tab === 'share') renderShare();
+  if (tab === 'history') renderHistory();
+  if (tab === 'log') renderLog();
+  if (tab === 'rotation') renderRotation();
+  if (tab === 'rules') renderRules();
+  if (tab === 'invite') renderInvite();
+}
+
+// ========== INIT ==========
+renderHome();
+checkInviteLink();
+</script>
+</body>
+</html>
