@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ajosafe-v4';
+const CACHE_NAME = 'ajosafe-v5';
 const URLS_TO_CACHE = [
   '/ajosafe/',
   '/ajosafe/index.html',
