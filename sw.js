@@ -26,6 +26,10 @@ self.addEventListener('activate', event => {
     })
   );
   self.clients.claim();
+  // Force all open tabs to reload
+  self.clients.matchAll({type: 'window'}).then(clients => {
+    clients.forEach(client => client.navigate(client.url));
+  });
 });
 
 // Fetch — serve from cache, fall back to network
