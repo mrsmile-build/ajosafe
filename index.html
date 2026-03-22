@@ -276,29 +276,28 @@
   .img-fullview img { max-width: 100%; max-height: 90vh; border-radius: 12px; object-fit: contain; }
   .img-fullview-close { position: absolute; top: 20px; right: 20px; font-size: 28px; cursor: pointer; color: #fff; }
 
-  /* PWA INSTALL BANNER */
-  .install-banner {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    background: linear-gradient(135deg, #1a1814, #242018);
-    border-top: 1px solid rgba(240,165,0,0.3);
-    padding: 14px 16px;
-    display: none;
+  /* PWA INSTALL CARD */
+  .install-card {
+    background: linear-gradient(135deg, rgba(240,165,0,0.12), rgba(255,140,0,0.04));
+    border: 1px solid rgba(240,165,0,0.3);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 16px;
+    display: flex;
     align-items: center;
     gap: 12px;
-    z-index: 150;
-    max-width: 480px;
-    margin: 0 auto;
-    animation: slideUpBanner 0.4s ease;
   }
-  @keyframes slideUpBanner { from { transform: translateY(100%); } to { transform: translateY(0); } }
-  .install-banner.show { display: flex; }
-  .install-banner-icon { font-size: 28px; flex-shrink: 0; }
-  .install-banner-text { flex: 1; }
-  .install-banner-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: var(--gold); }
-  .install-banner-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
-  .install-banner-btn { background: linear-gradient(135deg, var(--gold), #ff8c00); color: #000; border: none; padding: 10px 16px; border-radius: 10px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; flex-shrink: 0; }
-  .install-banner-close { color: var(--text-dim); font-size: 20px; cursor: pointer; padding: 4px; flex-shrink: 0; }
+  .install-card-icon { font-size: 28px; flex-shrink: 0; }
+  .install-card-text { flex: 1; }
+  .install-card-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: var(--gold); }
+  .install-card-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; line-height: 1.5; }
+  .install-card-btn { background: linear-gradient(135deg, var(--gold), #ff8c00); color: #000; border: none; padding: 10px 14px; border-radius: 10px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; flex-shrink: 0; }
+  
+  /* INSTALL INSTRUCTIONS MODAL */
+  .install-steps { margin-top: 12px; }
+  .install-step { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px; align-items: center; }
+  .install-step:last-child { border-bottom: none; }
+  .install-step-num { width: 24px; height: 24px; background: var(--gold); color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -327,6 +326,15 @@
     <div class="stat-card"><div class="num" id="statGroups">0</div><div class="label">Groups</div></div>
     <div class="stat-card"><div class="num" id="statMembers">0</div><div class="label">Members</div></div>
     <div class="stat-card"><div class="num" id="statPool">₦0</div><div class="label">Pool</div></div>
+  </div>
+  <!-- PWA INSTALL CARD - always visible unless already installed -->
+  <div class="install-card" id="installCard">
+    <div class="install-card-icon">📲</div>
+    <div class="install-card-text">
+      <div class="install-card-title">Install as App</div>
+      <div class="install-card-sub">Add AjoSafe to home screen — no Play Store needed</div>
+    </div>
+    <button class="install-card-btn" onclick="showInstallModal()">Install</button>
   </div>
   <div class="section-title">Your Ajo Groups</div>
   <div id="groupsList"><div class="empty-state"><div class="icon">🏦</div><p>No ajo group yet.<br>Create your first group below.</p></div></div>
@@ -1190,56 +1198,104 @@ function switchTab(tab) {
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/ajosafe/sw.js')
-      .then(reg => console.log('SW registered'))
+      .then(reg => console.log('AjoSafe SW registered'))
       .catch(err => console.log('SW error:', err));
   });
 }
 
-// Install prompt
+// Hide install card if already running as installed app
+const isInStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+if (isInStandalone) {
+  const card = document.getElementById('installCard');
+  if (card) card.style.display = 'none';
+}
+
+// Capture install prompt when browser offers it
 let deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
-  // Show banner after 3 seconds
-  setTimeout(() => {
-    const banner = document.getElementById('installBanner');
-    if (banner && !localStorage.getItem('ajosafe_install_dismissed')) {
-      banner.classList.add('show');
-    }
-  }, 3000);
+  // Show the Install Now button in modal
+  const btn = document.getElementById('installBtn');
+  if (btn) btn.style.display = 'block';
 });
 
-document.getElementById('installBtn')?.addEventListener('click', async () => {
+// After successful install hide the card
+window.addEventListener('appinstalled', () => {
+  const card = document.getElementById('installCard');
+  if (card) card.style.display = 'none';
+  showToast('🎉 AjoSafe installed on your home screen!');
+  gtag('event', 'pwa_installed');
+});
+
+async function triggerInstall() {
   if (!deferredPrompt) return;
   deferredPrompt.prompt();
   const result = await deferredPrompt.userChoice;
   if (result.outcome === 'accepted') {
-    gtag('event', 'pwa_installed');
-    showToast('🎉 AjoSafe installed!');
+    showToast('🎉 Installing AjoSafe...');
+    gtag('event', 'pwa_install_accepted');
   }
   deferredPrompt = null;
-  document.getElementById('installBanner').classList.remove('show');
-});
-
-function dismissInstall() {
-  document.getElementById('installBanner').classList.remove('show');
-  localStorage.setItem('ajosafe_install_dismissed', '1');
+  closeInstallModal();
 }
 
-// For iOS — show manual instructions since iOS doesn't support beforeinstallprompt
-const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-const isInStandalone = window.matchMedia('(display-mode: standalone)').matches;
-if (isIOS && !isInStandalone && !localStorage.getItem('ajosafe_install_dismissed')) {
-  setTimeout(() => {
-    const banner = document.getElementById('installBanner');
-    const sub = banner?.querySelector('.install-banner-sub');
-    const btn = document.getElementById('installBtn');
-    if (banner && sub && btn) {
-      sub.textContent = 'Tap Share → Add to Home Screen';
-      btn.style.display = 'none';
-      banner.classList.add('show');
-    }
-  }, 3000);
+function showInstallModal() {
+  const isAndroid = /android/i.test(navigator.userAgent);
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isChrome = /chrome/i.test(navigator.userAgent);
+  const isFirefox = /firefox/i.test(navigator.userAgent);
+
+  let steps = '';
+  if (deferredPrompt) {
+    // Browser supports automatic install
+    steps = `
+      <div class="install-steps">
+        <div class="install-step"><div class="install-step-num">1</div><span>Tap the <strong>Install Now</strong> button below</span></div>
+        <div class="install-step"><div class="install-step-num">2</div><span>Confirm when your browser asks</span></div>
+        <div class="install-step"><div class="install-step-num">3</div><span>AjoSafe appears on your home screen!</span></div>
+      </div>`;
+    document.getElementById('installBtn').style.display = 'block';
+  } else if (isIOS) {
+    steps = `
+      <div class="install-steps">
+        <div class="install-step"><div class="install-step-num">1</div><span>Tap the <strong>Share</strong> button at the bottom of Safari (the box with arrow)</span></div>
+        <div class="install-step"><div class="install-step-num">2</div><span>Scroll down and tap <strong>"Add to Home Screen"</strong></span></div>
+        <div class="install-step"><div class="install-step-num">3</div><span>Tap <strong>Add</strong> — AjoSafe icon appears on your home screen</span></div>
+      </div>`;
+  } else if (isAndroid && isChrome) {
+    steps = `
+      <div class="install-steps">
+        <div class="install-step"><div class="install-step-num">1</div><span>Tap the <strong>3 dots menu ⋮</strong> at the top right of Chrome</span></div>
+        <div class="install-step"><div class="install-step-num">2</div><span>Tap <strong>"Add to Home screen"</strong></span></div>
+        <div class="install-step"><div class="install-step-num">3</div><span>Tap <strong>Add</strong> — AjoSafe appears on your home screen!</span></div>
+      </div>`;
+  } else if (isFirefox) {
+    steps = `
+      <div class="install-steps">
+        <div class="install-step"><div class="install-step-num">1</div><span>Tap the <strong>3 dots menu ⋮</strong></span></div>
+        <div class="install-step"><div class="install-step-num">2</div><span>Tap <strong>"Install"</strong> or <strong>"Add to Home screen"</strong></span></div>
+        <div class="install-step"><div class="install-step-num">3</div><span>Confirm and AjoSafe is on your home screen!</span></div>
+      </div>`;
+  } else {
+    steps = `
+      <div class="install-steps">
+        <div class="install-step"><div class="install-step-num">1</div><span>Tap your browser's <strong>menu button</strong> (usually 3 dots)</span></div>
+        <div class="install-step"><div class="install-step-num">2</div><span>Look for <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong></span></div>
+        <div class="install-step"><div class="install-step-num">3</div><span>Tap it and confirm — AjoSafe is installed!</span></div>
+      </div>`;
+  }
+
+  document.getElementById('installStepsContent').innerHTML = steps;
+  document.getElementById('installModal').classList.add('open');
+}
+
+function closeInstallModal() {
+  document.getElementById('installModal').classList.remove('open');
+}
+
+function dismissInstall() {
+  closeInstallModal();
 }
 
 // ========== INIT ==========
@@ -1247,15 +1303,17 @@ renderHome();
 checkInviteLink();
 </script>
 
-<!-- PWA INSTALL BANNER -->
-<div class="install-banner" id="installBanner">
-  <div class="install-banner-icon">📱</div>
-  <div class="install-banner-text">
-    <div class="install-banner-title">Install AjoSafe</div>
-    <div class="install-banner-sub">Add to home screen — works like a real app</div>
+<!-- PWA INSTALL MODAL -->
+<div class="modal-overlay" id="installModal">
+  <div class="modal">
+    <div class="modal-title">📱 Install AjoSafe</div>
+    <div class="modal-sub">Add AjoSafe to your home screen so you can open it like a real app anytime.</div>
+    <div id="installStepsContent"></div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn-secondary" onclick="closeInstallModal()">Close</button>
+      <button class="btn-primary" id="installBtn" onclick="triggerInstall()" style="display:none">Install Now</button>
+    </div>
   </div>
-  <button class="install-banner-btn" id="installBtn">Install</button>
-  <div class="install-banner-close" onclick="dismissInstall()">✕</div>
 </div>
 </body>
 </html>
