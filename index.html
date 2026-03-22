@@ -328,13 +328,13 @@
     <div class="stat-card"><div class="num" id="statPool">₦0</div><div class="label">Pool</div></div>
   </div>
   <!-- PWA INSTALL CARD - always visible unless already installed -->
-  <div class="install-card" id="installCard">
+  <div class="install-card" id="installCard" onclick="showInstallModal()" style="cursor:pointer">
     <div class="install-card-icon">📲</div>
     <div class="install-card-text">
-      <div class="install-card-title">Install as App</div>
-      <div class="install-card-sub">Add AjoSafe to home screen — no Play Store needed</div>
+      <div class="install-card-title">📥 Install AjoSafe as App</div>
+      <div class="install-card-sub">No Play Store needed · Works offline · Tap to install</div>
     </div>
-    <button class="install-card-btn" onclick="showInstallModal()">Install</button>
+    <button class="install-card-btn" onclick="showInstallModal()">Install →</button>
   </div>
   <div class="section-title">Your Ajo Groups</div>
   <div id="groupsList"><div class="empty-state"><div class="icon">🏦</div><p>No ajo group yet.<br>Create your first group below.</p></div></div>
@@ -1205,10 +1205,12 @@ if ('serviceWorker' in navigator) {
 
 // Hide install card if already running as installed app
 const isInStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+// Only hide install card if actually running as installed app
 if (isInStandalone) {
   const card = document.getElementById('installCard');
   if (card) card.style.display = 'none';
 }
+// Otherwise always keep it visible - don't hide it
 
 // Capture install prompt when browser offers it
 let deferredPrompt = null;
