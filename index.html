@@ -622,19 +622,19 @@ function showMemberView(g, memberName) {
     <div class="member-proof-section" style="margin-top:20px">
       <div class="member-proof-title">📸 Upload Your Payment Proof</div>
       <div class="member-proof-sub">After paying, upload your screenshot here. Admin will confirm and mark you as paid.</div>
-      ${thisMember.proofStatus === 'pending' ? `
+      ${(thisMember.proofStatus === 'confirmed' || thisMember.status === 'paid') ? `
+        <div class="pending-status-box" style="background:rgba(46,204,113,0.1);border-color:rgba(46,204,113,0.3)">
+          <div class="pending-status-icon">✅</div>
+          <div class="pending-status-text" style="color:var(--green)">Payment confirmed by admin!</div>
+          <div class="pending-status-sub">You are marked as paid for this round.</div>
+        </div>` : thisMember.proofStatus === 'pending' ? `
         <div class="pending-status-box">
           <div class="pending-status-icon">⏳</div>
           <div class="pending-status-text">Proof submitted — waiting for admin</div>
           <div class="pending-status-sub">Your screenshot has been received. Admin will confirm shortly.</div>
           ${thisMember.proofImage ? `<img src="${thisMember.proofImage}" style="width:100%;border-radius:10px;max-height:120px;object-fit:cover;margin-top:10px">` : ''}
-        </div>` :
-      thisMember.status === 'paid' ? `
-        <div class="pending-status-box" style="background:rgba(46,204,113,0.1);border-color:rgba(46,204,113,0.3)">
-          <div class="pending-status-icon">✅</div>
-          <div class="pending-status-text" style="color:var(--green)">Payment confirmed by admin!</div>
         </div>` : `
-        <div class="upload-area" onclick="openMemberProofModal('${m.id}')">
+        <div class="upload-area" onclick="openMemberProofModal('${thisMember.id}')">
           <div class="upload-icon">📷</div>
           <p>Tap to upload payment screenshot</p>
         </div>`}
